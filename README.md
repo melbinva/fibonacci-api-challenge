@@ -321,6 +321,9 @@ Per interview guidance, AI assistance was used and reviewed critically.
 
 ### What AI got wrong or incomplete
 
+- Initial AI-generated Kubernetes manifests and Docker configuration did not fully satisfy the project’s security requirements. I later revised them to follow least-privilege principles, non-root execution, and container hardening best practices.
+- The original Dockerfile was not implemented as a multi-stage build, so I refactored it to reduce the runtime footprint and improve security posture.
+- I added observability support to improve metrics collection and monitoring readiness.
 - Earlier generated tests expected FastAPI default error shape (`detail`) after custom handlers were introduced.
 - A stale `/redoc` link remained after disabling ReDoc and required manual correction.
 - Initial drafts did not fully align with final structure goals (helper package + app factory), so additional manual refactoring was required.
