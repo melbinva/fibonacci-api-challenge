@@ -200,13 +200,54 @@ Notes:
 ### CI/CD
 
 - GitHub Actions workflow is included in .github/workflows/ci.yml.
+- Workflows are configured to run on self-hosted Linux runners (not `ubuntu-latest`).
 - On pull requests and pushes:
   - install dependencies
   - run tests
   - build Docker image
 - Typical production extension:
-  - push image to a registry
-  - deploy to target platform (for example Kubernetes, ECS, Azure Container Apps)
+  - push image to Azure Container Registry (ACR)
+  - deploy to Azure Kubernetes Service (AKS)
+
+Base production CD template and variable files are included:
+
+- `.github/workflows/cd-template.yml`
+- `.github/variables.example.env`
+- `.github/secrets.example.env`
+
+The template is Azure-only and uses:
+
+- GitHub OIDC federated identity login to Azure (no client secret by default)
+- AKS managed identity attachment to ACR for image pull (`az aks update --attach-acr`)
+
+Passwordless authentication (recommended):
+
+- Use GitHub OIDC federation with Microsoft Entra ID for workflow authentication.
+- Do not store long-lived Azure passwords or client secrets in repository secrets when OIDC is available.
+- Configure Azure login with:
+  - `AZURE_CLIENT_ID`
+  - `AZURE_TENANT_ID`
+  - `AZURE_SUBSCRIPTION_ID`
+- This enables short-lived, workload-issued tokens and reduces secret exposure risk.
+
+Self-hosted runner prerequisites:
+
+- `docker`
+- `python` 3.12
+- `uv`
+- `az` CLI
+- `kubectl` (required for AKS deployment workflow)
+
+Template usage:
+
+```bash
+# 1) create repo variables and secrets from example files
+# .github/variables.example.env
+# .github/secrets.example.env
+
+# 2) enable and run the template workflow
+# GitHub Actions -> "CD Template" -> Run workflow
+```
 
 ### Monitoring and Logging
 

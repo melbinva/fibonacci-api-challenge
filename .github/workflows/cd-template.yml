@@ -1,0 +1,58 @@
+name: CD Template
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-push-and-deploy-aks:
+    runs-on:
+      - self-hosted
+      - linux
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Uses GitHub OIDC federation with Microsoft Entra ID (no client secret).
+      - name: Azure login (OIDC federated identity)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to Azure Container Registry
+        run: az acr login --name "${{ vars.ACR_NAME }}"
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ vars.REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:latest
+            ${{ vars.REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
+
+      # AKS uses managed identity for ACR pull via --attach-acr on the cluster.
+      - name: Ensure AKS is attached to ACR
+        run: az aks update --resource-group "${{ vars.AKS_RESOURCE_GROUP }}" --name "${{ vars.AKS_CLUSTER_NAME }}" --attach-acr "${{ vars.ACR_NAME }}"
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+
+      - name: Deploy manifests and update image
+        run: |
+          kubectl apply -k k8s
+          kubectl -n "${{ vars.AKS_NAMESPACE }}" set image deployment/${{ vars.AKS_DEPLOYMENT_NAME }} \
+            ${{ vars.AKS_CONTAINER_NAME }}=${{ vars.REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
+          kubectl -n "${{ vars.AKS_NAMESPACE }}" rollout status deployment/${{ vars.AKS_DEPLOYMENT_NAME }}
