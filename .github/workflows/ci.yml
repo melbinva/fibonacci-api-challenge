@@ -80,7 +80,7 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Log in to Azure Container Registry
-        run: az acr login --name "${{ vars.ACR_NAME }}"
+        run: az acr login --name "${{ vars.NONPROD_ACR_NAME }}"
 
       - name: Build and push image to ACR
         uses: docker/build-push-action@v6
@@ -88,5 +88,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ vars.REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:latest
-            ${{ vars.REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
+            ${{ vars.NONPROD_REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:latest
+            ${{ vars.NONPROD_REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}

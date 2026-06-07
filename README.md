@@ -170,13 +170,12 @@ Production-ready manifests are available in [k8s](k8s):
 
 Before applying:
 
-1. For pipeline-driven deployments, no manual image edit is required. The image reference in [k8s/deployment.yaml](k8s/deployment.yaml) is rendered from GitHub variables (`REGISTRY_HOST` and `IMAGE_NAME`).
-2. Set deployment template values through GitHub Actions variables using [.github/variables.env.schema](.github/variables.env.schema), including:
-  - `INGRESS_HOST`
-  - `USER_ASSIGNED_MANAGED_IDENTITY_CLIENT_ID`
-  - `KEY_VAULT_NAME`
-  - `AKV_TLS_CERT_SECRET_NAME`
-  - `AKV_TLS_KEY_SECRET_NAME`
+1. For pipeline-driven deployments, no manual image edit is required. The image reference in [k8s/deployment.yaml](k8s/deployment.yaml) is rendered from GitHub variables (`REGISTRY_HOST` and `IMAGE_NAME`) during stage-specific manifest rendering.
+2. Set deployment template values through GitHub Actions variables using:
+  - [.github/variables.common.env.schema](.github/variables.common.env.schema)
+  - [.github/variables.dev.env.schema](.github/variables.dev.env.schema)
+  - [.github/variables.test.env.schema](.github/variables.test.env.schema)
+  - [.github/variables.prod.env.schema](.github/variables.prod.env.schema)
 3. The CD pipeline renders those variables into the Kubernetes templates before applying them.
 4. Ensure AKS has Secrets Store CSI Driver + Azure Key Vault provider installed and workload identity enabled.
 5. Ensure your cluster can pull from ACR (for AKS, use `az aks update --attach-acr`).
@@ -256,16 +255,20 @@ Scope boundary:
 Base production CD template and variable files are included:
 
 - `.github/workflows/cd-template.yml`
-- `.github/variables.env.schema`
+- `.github/variables.common.env.schema`
+- `.github/variables.dev.env.schema`
+- `.github/variables.test.env.schema`
+- `.github/variables.prod.env.schema`
 - `.github/secrets.env.schema`
 
 The template is Azure-only and uses:
 
-- GitHub OIDC federated identity login to Azure (no client secret by default)
-- GitHub OIDC federated identity login to Azure for both CI image push and CD deployment
+- GitHub OIDC federated identity login to Azure for both CI image push and CD deployment (no client secret by default)
+- stage-based deployment flow: `dev` -> `test` -> production approval -> `prod`
+- non-production ACR for `dev` and `test`, production ACR for `prod`
 - AKS managed identity attachment to ACR for image pull (`az aks update --attach-acr`)
-- GitHub Environment approval gate before deployment (`DEPLOYMENT_ENVIRONMENT`)
-- Post-deployment validation (rollout + optional HTTP health check via `AKS_VALIDATION_URL`)
+- GitHub Environment-based stage controls (`DEV_DEPLOYMENT_ENVIRONMENT`, `TEST_DEPLOYMENT_ENVIRONMENT`, `PROD_DEPLOYMENT_ENVIRONMENT`)
+- Post-deployment validation per stage (cluster checks + optional HTTP health checks via `DEV_AKS_VALIDATION_URL`, `TEST_AKS_VALIDATION_URL`, `PROD_AKS_VALIDATION_URL`)
 - Pipeline-based manifest template rendering from GitHub variables before `kubectl apply`
 
 Passwordless authentication (recommended):
@@ -278,8 +281,10 @@ Passwordless authentication (recommended):
   - `AZURE_TENANT_ID`
   - `AZURE_SUBSCRIPTION_ID`
 - Configure ACR/image variables with:
-  - `ACR_NAME`
-  - `REGISTRY_HOST`
+  - `NONPROD_ACR_NAME`
+  - `NONPROD_REGISTRY_HOST`
+  - `PROD_ACR_NAME`
+  - `PROD_REGISTRY_HOST`
   - `IMAGE_NAME`
 - This enables short-lived, workload-issued tokens and reduces secret exposure risk.
 
@@ -300,7 +305,10 @@ Template usage:
 
 ```bash
 # 1) create repo variables and optional secrets from example files
-# .github/variables.env.schema
+# .github/variables.common.env.schema
+# .github/variables.dev.env.schema
+# .github/variables.test.env.schema
+# .github/variables.prod.env.schema
 # .github/secrets.env.schema
 
 # 2) enable and run the template workflow
