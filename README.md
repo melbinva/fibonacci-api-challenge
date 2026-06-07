@@ -27,7 +27,9 @@ Quick reference:
 
 Request:
 
-`curl -s http://127.0.0.1:8000/health`
+```bash
+curl -s http://127.0.0.1:8000/health
+```
 
 Response:
 
@@ -39,7 +41,9 @@ Response:
 
 Request:
 
-`curl -s "http://127.0.0.1:8000/fibonacci?n=10"`
+```bash
+curl -s "http://127.0.0.1:8000/fibonacci?n=10"
+```
 
 Response:
 
@@ -56,22 +60,40 @@ Validation behavior:
 
 Failure examples:
 
-- `curl -i "http://127.0.0.1:8000/fibonacci?n=-1"`
-- `curl -i "http://127.0.0.1:8000/fibonacci?n=abc"`
+```bash
+curl -i "http://127.0.0.1:8000/fibonacci?n=-1"
+curl -i "http://127.0.0.1:8000/fibonacci?n=abc"
+```
 
 ## Local Run
 
 1. Install uv (one time):
 
-  `curl -LsSf https://astral.sh/uv/install.sh | sh`
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 2. Create and sync the environment:
 
-  `uv sync --all-groups`
+```bash
+uv sync --all-groups
+```
+
+### Virtual Environment (venv) Note
+
+- `uv sync` creates and manages a project virtual environment at `.venv/`.
+- You can run commands directly without activating venv:
+  - `uv run uvicorn src.app.main:app --reload`
+  - `uv run pytest -q`
+- If you prefer activation-based workflow:
+  - `source .venv/bin/activate`
+  - then run tools normally (for example, `python`, `pytest`, `uvicorn`).
 
 3. Start the API:
 
-  `uv run uvicorn src.app.main:app --reload`
+```bash
+uv run uvicorn src.app.main:app --reload
+```
 
 4. Open:
 
@@ -81,25 +103,35 @@ Failure examples:
 
 ## Run Tests
 
-`uv run pytest -q`
+```bash
+uv run pytest -q
+```
 
 ## Docker
 
 Build image:
 
+```bash
 docker build -t fibonacci-api .
+```
 
 Least-privilege build (same Dockerfile, non-root runtime user):
 
+```bash
 docker build -t fibonacci-api:least-priv .
+```
 
 Run container:
 
+```bash
 docker run --rm -p 8000:8000 fibonacci-api
+```
 
 Verify container user is non-root:
 
+```bash
 docker run --rm --entrypoint id fibonacci-api:least-priv
+```
 
 ## Kubernetes (Production Manifests)
 
@@ -124,11 +156,15 @@ Before applying:
 
 Deploy with:
 
-`kubectl apply -k k8s`
+```bash
+kubectl apply -k k8s
+```
 
 Check rollout:
 
-`kubectl -n fibonacci-prod rollout status deploy/fibonacci-api`
+```bash
+kubectl -n fibonacci-prod rollout status deploy/fibonacci-api
+```
 
 SRE best-practice hardening included:
 
@@ -147,7 +183,9 @@ Optional SRE observability resources (Prometheus Operator required):
 
 Apply monitoring resources:
 
-`kubectl apply -k k8s/monitoring`
+```bash
+kubectl apply -k k8s/monitoring
+```
 
 Notes:
 
