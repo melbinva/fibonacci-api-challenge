@@ -180,15 +180,21 @@ Before applying:
 4. Ensure AKS has Secrets Store CSI Driver + Azure Key Vault provider installed and workload identity enabled.
 5. Ensure your cluster can pull from ACR (for AKS, use `az aks update --attach-acr`).
 
+Important:
+
+- The Kubernetes manifests in [k8s](k8s) contain template placeholders (for example `${REGISTRY_HOST}`, `${INGRESS_HOST}`, and identity/key vault variables).
+- Do not run `kubectl apply -k k8s` directly unless placeholders are rendered or replaced first.
+- Recommended path: use the CD workflow, which renders templates before applying them.
+
 TLS note:
 
 - [k8s/ingress.yaml](k8s/ingress.yaml) references `secretName: fibonacci-api-tls`.
 - That secret is synced from Azure Key Vault by [k8s/secretproviderclass.yaml](k8s/secretproviderclass.yaml) when the deployment mounts the CSI volume.
 
-Deploy with:
+Deploy with (after rendering templates):
 
 ```bash
-kubectl apply -k k8s
+kubectl apply -k rendered-k8s-<stage>
 ```
 
 Check rollout:
@@ -271,6 +277,11 @@ The template is Azure-only and uses:
 - Post-deployment validation per stage (cluster checks + optional HTTP health checks via `DEV_AKS_VALIDATION_URL`, `TEST_AKS_VALIDATION_URL`, `PROD_AKS_VALIDATION_URL`)
 - Pipeline-based manifest template rendering from GitHub variables before `kubectl apply`
 
+Stage namespace note:
+
+- Current base manifests are pinned to `fibonacci-prod` namespace in [k8s/kustomization.yaml](k8s/kustomization.yaml).
+- Keep `DEV_AKS_NAMESPACE`, `TEST_AKS_NAMESPACE`, and `PROD_AKS_NAMESPACE` aligned with rendered manifest namespace values, or template the namespace field as a future enhancement.
+
 Passwordless authentication (recommended):
 
 - Both the CI workflow and CD template use GitHub OIDC federation with Microsoft Entra ID for passwordless authentication.
@@ -288,6 +299,12 @@ Passwordless authentication (recommended):
   - `IMAGE_NAME`
 - This enables short-lived, workload-issued tokens and reduces secret exposure risk.
 
+Image push behavior on `main`:
+
+- CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) pushes to non-production ACR on `main`.
+- CD template ([.github/workflows/cd-template.yml](.github/workflows/cd-template.yml)) also builds and pushes to both non-production and production ACR.
+- If you want a single push source of truth, disable image push in one workflow.
+
 Self-hosted runner prerequisites:
 
 - `docker`
@@ -304,14 +321,16 @@ Runner note:
 Template usage:
 
 ```bash
-# 1) create repo variables and optional secrets from example files
+# 1) create repository-level shared variables and optional secrets
 # .github/variables.common.env.schema
-# .github/variables.dev.env.schema
-# .github/variables.test.env.schema
-# .github/variables.prod.env.schema
 # .github/secrets.env.schema
 
-# 2) enable and run the template workflow
+# 2) create environment-specific variables in GitHub Environments
+# dev   -> .github/variables.dev.env.schema
+# test  -> .github/variables.test.env.schema
+# prod  -> .github/variables.prod.env.schema
+
+# 3) enable and run the template workflow
 # GitHub Actions -> "CD Template" -> Run workflow
 ```
 
