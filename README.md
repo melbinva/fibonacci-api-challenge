@@ -10,25 +10,6 @@ This project implements a REST API that returns the nth Fibonacci number.
 - Docker
 - GitHub Actions
 
-## Evaluation Criteria Coverage
-
-- Functionality of the API:
-  - Implements `GET /fibonacci?n=<integer>` with deterministic Fibonacci output.
-  - Provides `GET /health` for service health checks.
-  - Includes input validation and guardrails for negative, missing, invalid, and oversized `n` values.
-- Clarity and quality of the code:
-  - Uses `src/`-root modular structure with clear separation of concerns (`router`, `constants`, `helper`).
-  - Applies consistent custom error handling and request logging through dedicated helper modules.
-  - Keeps app initialization centralized in `create_app()` for maintainability and testability.
-- Completeness and clarity of the documentation:
-  - Documents endpoints, local run steps, testing, container usage, and Kubernetes deployment.
-  - Includes API behavior examples for success and failure cases.
-  - Includes explicit AI-usage disclosure and validation notes.
-- Consideration of operational and deployment aspects:
-  - Provides Docker image build/run instructions and CI workflow configuration.
-  - Includes production-focused Kubernetes manifests (deployment, service, ingress, HPA, PDB, network policy).
-  - Covers operational concerns such as readiness/liveness checks, scaling, logging, and monitoring.
-
 ## Endpoints
 
 Base URL (local): `http://127.0.0.1:8000`
@@ -253,5 +234,24 @@ Per interview guidance, AI assistance was used and reviewed critically.
 - Earlier generated tests expected FastAPI default error shape (`detail`) after custom handlers were introduced.
 - A stale `/redoc` link remained after disabling ReDoc and required manual correction.
 - Initial drafts did not fully align with final structure goals (helper package + app factory), so additional manual refactoring was required.
+
+## Evaluation Criteria Coverage
+
+- Functionality of the API:
+  - Implements `GET /fibonacci?n=<integer>` with deterministic Fibonacci output.
+  - Provides `GET /health` for service health checks.
+  - Includes input validation and guardrails for negative, missing, invalid, and oversized `n` values.
+- Clarity and quality of the code:
+  - Uses `src/`-root modular structure with clear separation of concerns (`router`, `constants`, `helper`).
+  - Applies consistent custom error handling and request logging through dedicated helper modules.
+  - Keeps app initialization centralized in `create_app()` for maintainability and testability.
+- Completeness and clarity of the documentation:
+  - Documents endpoints, local run steps, testing, container usage, and Kubernetes deployment.
+  - Includes API behavior examples for success and failure cases.
+  - Includes explicit AI-usage disclosure and validation notes.
+- Consideration of operational and deployment aspects:
+  - Provides Docker image build/run instructions and CI workflow configuration.
+  - Includes production-focused Kubernetes manifests (deployment, service, ingress, HPA, PDB, network policy).
+  - Covers operational concerns such as readiness/liveness checks, scaling, logging, and monitoring.
 
 
