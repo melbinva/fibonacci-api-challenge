@@ -2,6 +2,19 @@
 
 This project implements a REST API that returns the nth Fibonacci number.
 
+## Table of Contents
+
+- [Tech Stack](#tech-stack)
+- [Endpoints](#endpoints)
+- [Local Run](#local-run)
+- [Run Tests](#run-tests)
+- [Docker](#docker)
+- [Kubernetes (Production Manifests)](#kubernetes-production-manifests)
+- [Production Deployment Considerations](#production-deployment-considerations)
+- [Algorithm Choice](#algorithm-choice)
+- [AI Usage](#ai-usage)
+- [Evaluation Criteria Coverage](#evaluation-criteria-coverage)
+
 ## Tech Stack
 
 - Python 3.12
@@ -126,7 +139,7 @@ docker run --rm -p 8000:8000 fibonacci-api
 Verify container user is non-root:
 
 ```bash
-docker run --rm --entrypoint id fibonacci-api:least-priv
+docker run --rm --entrypoint id fibonacci-api
 ```
 
 ## Kubernetes (Production Manifests)
@@ -139,6 +152,7 @@ Production-ready manifests are available in [k8s](k8s):
 - [k8s/ingress.yaml](k8s/ingress.yaml)
 - [k8s/pdb.yaml](k8s/pdb.yaml)
 - [k8s/serviceaccount.yaml](k8s/serviceaccount.yaml)
+- [k8s/secretproviderclass.yaml](k8s/secretproviderclass.yaml)
 - [k8s/networkpolicy.yaml](k8s/networkpolicy.yaml)
 - [k8s/kustomization.yaml](k8s/kustomization.yaml)
 
@@ -242,7 +256,9 @@ The template is Azure-only and uses:
 
 Passwordless authentication (recommended):
 
-- Use GitHub OIDC federation with Microsoft Entra ID for workflow authentication.
+- The CD template uses GitHub OIDC federation with Microsoft Entra ID for passwordless authentication.
+- The CI workflow still uses ACR username/password secrets for image push.
+- Prefer migrating CI image push to federated Azure authentication as a future improvement if your registry and runner setup support it.
 - Do not store long-lived Azure passwords or client secrets in repository secrets when OIDC is available.
 - Configure Azure login with:
   - `AZURE_CLIENT_ID`
@@ -257,6 +273,11 @@ Self-hosted runner prerequisites:
 - `uv`
 - `az` CLI
 - `kubectl` (required for AKS deployment workflow)
+
+Runner note:
+
+- `uv` is required for the CI workflow.
+- The AKS CD template specifically requires `docker`, `az`, and `kubectl` on the self-hosted runner.
 
 Template usage:
 
