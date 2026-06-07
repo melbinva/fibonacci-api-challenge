@@ -2,10 +2,6 @@
 
 This project implements a REST API that returns the nth Fibonacci number.
 
-## Architecture Blueprint
-
-- Full architecture and operations blueprint: [BLUEPRINT.md](BLUEPRINT.md)
-
 ## Tech Stack
 
 - Python 3.12
