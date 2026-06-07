@@ -1,0 +1,38 @@
+I used AI  to mainly create the scaffold of the app for generating the basic FastAPI application structure. and drafting the fibonacci endpoint and test skeleton. It was used a productive guide rather than depending on it completly
+I treated the generated code a starting point than a final code. 
+later reviewed the output by going through each file. It did not captured the test cases and production level details. I was more generic in the begining. Generated code needed manual review to make sure that it aligned with the assignment requirement.
+
+
+I used AI as a productivity aid for first drafts and structure, then reviewed and refined the output manually. I treated the generated content as a starting point rather than as final code. I also used it to sanity-check whether the solution covered the assignment requirements, including documentation and deployment considerations.
+
+What I accepted vs modified
+I kept:
+
+the general FastAPI project structure
+the basic endpoint/test scaffolding
+the initial Docker and CI outline
+I changed:
+
+input validation rules and error handling
+the Fibonacci implementation details to keep it iterative and efficient
+the OpenAPI/Swagger exposure details
+the README wording and structure
+the production considerations so they were more concrete and relevant to the assignment
+How I validated correctness
+I validated the AI-assisted output by:
+
+manually reviewing the generated code
+running the automated test suite
+checking known Fibonacci values such as 0, 1, 2, and 10
+testing invalid input cases such as negative, missing, and non-integer values
+verifying that the API documentation and Swagger/OpenAPI endpoints were exposed correctly
+What AI got wrong or incomplete
+The AI output was useful for speed, but it was incomplete in a few areas:
+
+it did not fully capture the expected level of input validation on the first pass
+production-readiness details were initially too generic
+documentation structure needed cleanup to make the repository easier to review
+generated drafts needed manual review to ensure the behavior matched the assignment exactly
+If you want, I can turn this into a polished final paragraph block for your README or your usageofai file in your own tone.
+
+GPT-5.4 • 3.6 credits

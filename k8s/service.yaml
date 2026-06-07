@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fibonacci-api
+  namespace: fibonacci-prod
+  labels:
+    app: fibonacci-api
+spec:
+  type: ClusterIP
+  selector:
+    app: fibonacci-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000

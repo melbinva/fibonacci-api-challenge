@@ -1,0 +1,40 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: fibonacci-api-alerts
+  namespace: fibonacci-prod
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: fibonacci-api-sre
+      rules:
+        - alert: FibonacciApiPodDown
+          expr: kube_deployment_status_replicas_available{deployment="fibonacci-api",namespace="fibonacci-prod"} < 1
+          for: 2m
+          labels:
+            severity: critical
+            service: fibonacci-api
+          annotations:
+            summary: "Fibonacci API has no available pods"
+            description: "No replicas are available for deployment fibonacci-api in namespace fibonacci-prod."
+
+        - alert: FibonacciApiHighCpu
+          expr: sum(rate(container_cpu_usage_seconds_total{namespace="fibonacci-prod",pod=~"fibonacci-api-.*",container="fibonacci-api"}[5m])) / sum(kube_pod_container_resource_limits{namespace="fibonacci-prod",pod=~"fibonacci-api-.*",container="fibonacci-api",resource="cpu"}) > 0.8
+          for: 10m
+          labels:
+            severity: warning
+            service: fibonacci-api
+          annotations:
+            summary: "Fibonacci API CPU utilization is high"
+            description: "CPU utilization is above 80% for at least 10 minutes."
+
+        - alert: FibonacciApiRestartsHigh
+          expr: increase(kube_pod_container_status_restarts_total{namespace="fibonacci-prod",pod=~"fibonacci-api-.*",container="fibonacci-api"}[15m]) > 3
+          for: 5m
+          labels:
+            severity: warning
+            service: fibonacci-api
+          annotations:
+            summary: "Fibonacci API pod restarts detected"
+            description: "Container restarted more than 3 times in the last 15 minutes."
