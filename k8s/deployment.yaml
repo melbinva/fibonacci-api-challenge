@@ -22,6 +22,7 @@ spec:
     metadata:
       labels:
         app: fibonacci-api
+        azure.workload.identity/use: "true"
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/health"
@@ -100,6 +101,15 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: secrets-store-inline
+              mountPath: /mnt/secrets-store
+              readOnly: true
       volumes:
         - name: tmp
           emptyDir: {}
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: fibonacci-api-akv-tls

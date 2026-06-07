@@ -4,6 +4,7 @@ namespace: fibonacci-prod
 resources:
   - namespace.yaml
   - serviceaccount.yaml
+  - secretproviderclass.yaml
   - deployment.yaml
   - service.yaml
   - networkpolicy.yaml

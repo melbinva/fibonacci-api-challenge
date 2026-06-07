@@ -28,6 +28,25 @@ jobs:
       - name: Run unit tests
         run: uv run pytest -q tests/
 
+  what-if-manifests:
+    runs-on:
+      - self-hosted
+      - linux
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Render Kubernetes manifests (what-if)
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work bitnami/kubectl:1.30.3 \
+            kustomize k8s > rendered-manifests.yaml
+
+      - name: Validate manifests with client-side dry-run
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work bitnami/kubectl:1.30.3 \
+            apply --dry-run=client --validate=false -f rendered-manifests.yaml
+
   docker-build:
     runs-on:
       - self-hosted
@@ -41,7 +60,7 @@ jobs:
 
   push-to-acr:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [test, docker-build]
+    needs: [test, what-if-manifests, docker-build]
     runs-on:
       - self-hosted
       - linux

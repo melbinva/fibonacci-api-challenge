@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  build-push-and-deploy-aks:
+  build-and-push:
     runs-on:
       - self-hosted
       - linux
@@ -40,6 +40,32 @@ jobs:
             ${{ vars.REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:latest
             ${{ vars.REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
 
+  approval-gate:
+    needs: build-and-push
+    runs-on:
+      - self-hosted
+      - linux
+    environment: ${{ vars.DEPLOYMENT_ENVIRONMENT }}
+
+    steps:
+      - name: Await environment approval
+        run: echo "Deployment approved for environment: ${{ vars.DEPLOYMENT_ENVIRONMENT }}"
+
+  deploy-aks:
+    needs: [build-and-push, approval-gate]
+    runs-on:
+      - self-hosted
+      - linux
+
+    steps:
+      # Uses GitHub OIDC federation with Microsoft Entra ID (no client secret).
+      - name: Azure login (OIDC federated identity)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
       # AKS uses managed identity for ACR pull via --attach-acr on the cluster.
       - name: Ensure AKS is attached to ACR
         run: az aks update --resource-group "${{ vars.AKS_RESOURCE_GROUP }}" --name "${{ vars.AKS_CLUSTER_NAME }}" --attach-acr "${{ vars.ACR_NAME }}"
@@ -56,3 +82,14 @@ jobs:
           kubectl -n "${{ vars.AKS_NAMESPACE }}" set image deployment/${{ vars.AKS_DEPLOYMENT_NAME }} \
             ${{ vars.AKS_CONTAINER_NAME }}=${{ vars.REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
           kubectl -n "${{ vars.AKS_NAMESPACE }}" rollout status deployment/${{ vars.AKS_DEPLOYMENT_NAME }}
+
+      - name: Post-deployment validation (cluster resources)
+        run: |
+          kubectl -n "${{ vars.AKS_NAMESPACE }}" get deployment/${{ vars.AKS_DEPLOYMENT_NAME }}
+          kubectl -n "${{ vars.AKS_NAMESPACE }}" get pods -l app=${{ vars.AKS_DEPLOYMENT_NAME }}
+          kubectl -n "${{ vars.AKS_NAMESPACE }}" get svc,ingress
+
+      - name: Post-deployment validation (HTTP health)
+        if: ${{ vars.AKS_VALIDATION_URL != '' }}
+        run: |
+          curl --fail --show-error --silent "${{ vars.AKS_VALIDATION_URL }}"

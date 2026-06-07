@@ -147,8 +147,14 @@ Before applying:
 1. Replace image in [k8s/deployment.yaml](k8s/deployment.yaml) with your ACR image, for example:
   `myregistry.azurecr.io/fibonacci-api:latest`
 2. Replace ingress host in [k8s/ingress.yaml](k8s/ingress.yaml) with your domain.
-3. Replace TLS secret name in [k8s/ingress.yaml](k8s/ingress.yaml) with your certificate secret.
-4. Ensure your cluster can pull from ACR (for AKS, use `az aks update --attach-acr`).
+3. Configure [k8s/secretproviderclass.yaml](k8s/secretproviderclass.yaml) placeholders for Key Vault name, tenant ID, managed identity client ID, and TLS secret object names.
+4. Ensure AKS has Secrets Store CSI Driver + Azure Key Vault provider installed and workload identity enabled.
+5. Ensure your cluster can pull from ACR (for AKS, use `az aks update --attach-acr`).
+
+TLS note:
+
+- [k8s/ingress.yaml](k8s/ingress.yaml) references `secretName: fibonacci-api-tls`.
+- That secret is synced from Azure Key Vault by [k8s/secretproviderclass.yaml](k8s/secretproviderclass.yaml) when the deployment mounts the CSI volume.
 
 Deploy with:
 
@@ -190,6 +196,11 @@ Notes:
 
 ## Production Deployment Considerations
 
+Scope boundary:
+
+- This repository is intentionally focused on application workload delivery (build, test, containerize, deploy application manifests).
+- Infrastructure provisioning and lifecycle management should be handled in a separate repository using Infrastructure as Code, preferably Terraform.
+
 ### Containerization
 
 - Package as a Docker image and deploy to a container runtime.
@@ -204,6 +215,7 @@ Notes:
 - On pull requests and pushes:
   - install dependencies
   - run tests
+  - run Kubernetes manifest what-if validation (kustomize render + client dry-run)
   - build Docker image
 - Typical production extension:
   - push image to Azure Container Registry (ACR)
@@ -212,13 +224,15 @@ Notes:
 Base production CD template and variable files are included:
 
 - `.github/workflows/cd-template.yml`
-- `.github/variables.example.env`
-- `.github/secrets.example.env`
+- `.github/variables.env.schema`
+- `.github/secrets.env.schema`
 
 The template is Azure-only and uses:
 
 - GitHub OIDC federated identity login to Azure (no client secret by default)
 - AKS managed identity attachment to ACR for image pull (`az aks update --attach-acr`)
+- GitHub Environment approval gate before deployment (`DEPLOYMENT_ENVIRONMENT`)
+- Post-deployment validation (rollout + optional HTTP health check via `AKS_VALIDATION_URL`)
 
 Passwordless authentication (recommended):
 
@@ -242,8 +256,8 @@ Template usage:
 
 ```bash
 # 1) create repo variables and secrets from example files
-# .github/variables.example.env
-# .github/secrets.example.env
+# .github/variables.env.schema
+# .github/secrets.env.schema
 
 # 2) enable and run the template workflow
 # GitHub Actions -> "CD Template" -> Run workflow
