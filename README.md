@@ -145,9 +145,14 @@ Production-ready manifests are available in [k8s](k8s):
 Before applying:
 
 1. Replace image in [k8s/deployment.yaml](k8s/deployment.yaml) with your ACR image, for example:
-  `myregistry.azurecr.io/fibonacci-api:latest`
-2. Replace ingress host in [k8s/ingress.yaml](k8s/ingress.yaml) with your domain.
-3. Configure [k8s/secretproviderclass.yaml](k8s/secretproviderclass.yaml) placeholders for Key Vault name, tenant ID, managed identity client ID, and TLS secret object names.
+  Not required for pipeline-driven deployments. The image reference is rendered from GitHub variables (`REGISTRY_HOST` and `IMAGE_NAME`).
+2. Set deployment template values through GitHub Actions variables using [.github/variables.env.schema](.github/variables.env.schema), including:
+  - `INGRESS_HOST`
+  - `USER_ASSIGNED_MANAGED_IDENTITY_CLIENT_ID`
+  - `KEY_VAULT_NAME`
+  - `AKV_TLS_CERT_SECRET_NAME`
+  - `AKV_TLS_KEY_SECRET_NAME`
+3. The CD pipeline renders those variables into the Kubernetes templates before applying them.
 4. Ensure AKS has Secrets Store CSI Driver + Azure Key Vault provider installed and workload identity enabled.
 5. Ensure your cluster can pull from ACR (for AKS, use `az aks update --attach-acr`).
 
@@ -233,6 +238,7 @@ The template is Azure-only and uses:
 - AKS managed identity attachment to ACR for image pull (`az aks update --attach-acr`)
 - GitHub Environment approval gate before deployment (`DEPLOYMENT_ENVIRONMENT`)
 - Post-deployment validation (rollout + optional HTTP health check via `AKS_VALIDATION_URL`)
+- Pipeline-based manifest template rendering from GitHub variables before `kubectl apply`
 
 Passwordless authentication (recommended):
 
@@ -289,13 +295,16 @@ Per interview guidance, AI assistance was used and reviewed critically.
 
 ### Where AI was used
 
-- Initial FastAPI scaffold (app structure, route scaffolding, test skeleton).
+- Initial FastAPI scaffold (app structure, route scaffolding, Fibonacci endpoint draft, and test skeleton).
 - Refactoring support for module organization (`src/app/helper/*`, router separation, app factory).
 - Drafting operational documentation sections in this README.
+- Sanity-checking whether the solution covered the assignment requirements, including deployment and operational considerations.
 
 ### How AI was used
 
 - Used AI for iterative suggestions, not one-shot generation.
+- Used AI as a productivity aid for first drafts and structure, not as a final source of truth.
+- Treated generated output as a starting point rather than finished code.
 - Reviewed each suggestion before applying, then adjusted code to match project requirements.
 - Used AI mainly for speed on boilerplate and refactor patterns; business logic decisions were manually verified.
 
@@ -306,17 +315,22 @@ Per interview guidance, AI assistance was used and reviewed critically.
   - Initial test structure and containerization/docs boilerplate.
 - Modified:
   - Error handling to use a consistent custom JSON error envelope.
+  - The Fibonacci implementation to keep it iterative and efficient.
   - Route organization into dedicated modules and helper package.
   - App bootstrap into `create_app()` factory pattern.
   - Swagger/ReDoc configuration (kept Swagger, disabled ReDoc for challenge usage).
   - Tests updated to match final error-response contract.
+  - README wording and structure.
+  - Production-readiness details so they were more concrete and aligned with the assignment.
 
 ### How correctness was validated
 
 - Automated tests: `uv run pytest -q` (all tests passing).
+- Manual file-by-file review of generated code before finalizing changes.
 - Manual endpoint verification for:
   - Success cases (`/health`, `/fibonacci?n=0`, `/fibonacci?n=10`)
   - Failure cases (`n < 0`, `n` missing, invalid `n`, over max limit)
+- Verified Swagger/OpenAPI exposure and documentation endpoints.
 - Static error checks in edited modules during refactoring.
 
 ### What AI got wrong or incomplete

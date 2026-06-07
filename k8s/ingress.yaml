@@ -11,10 +11,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - fibonacci.example.com
+        - ${INGRESS_HOST}
       secretName: fibonacci-api-tls
   rules:
-    - host: fibonacci.example.com
+    - host: ${INGRESS_HOST}
       http:
         paths:
           - path: /

@@ -76,9 +76,44 @@ jobs:
           resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
           cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
 
+      - name: Render manifest templates
+        env:
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          REGISTRY_HOST: ${{ vars.REGISTRY_HOST }}
+          IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+          INGRESS_HOST: ${{ vars.INGRESS_HOST }}
+          USER_ASSIGNED_MANAGED_IDENTITY_CLIENT_ID: ${{ vars.USER_ASSIGNED_MANAGED_IDENTITY_CLIENT_ID }}
+          KEY_VAULT_NAME: ${{ vars.KEY_VAULT_NAME }}
+          AKV_TLS_CERT_SECRET_NAME: ${{ vars.AKV_TLS_CERT_SECRET_NAME }}
+          AKV_TLS_KEY_SECRET_NAME: ${{ vars.AKV_TLS_KEY_SECRET_NAME }}
+        run: |
+          rm -rf rendered-k8s
+          cp -R k8s rendered-k8s
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          replacements = {
+              "${AZURE_TENANT_ID}": os.environ["AZURE_TENANT_ID"],
+              "${REGISTRY_HOST}": os.environ["REGISTRY_HOST"],
+              "${IMAGE_NAME}": os.environ["IMAGE_NAME"],
+              "${INGRESS_HOST}": os.environ["INGRESS_HOST"],
+              "${USER_ASSIGNED_MANAGED_IDENTITY_CLIENT_ID}": os.environ["USER_ASSIGNED_MANAGED_IDENTITY_CLIENT_ID"],
+              "${KEY_VAULT_NAME}": os.environ["KEY_VAULT_NAME"],
+              "${AKV_TLS_CERT_SECRET_NAME}": os.environ["AKV_TLS_CERT_SECRET_NAME"],
+              "${AKV_TLS_KEY_SECRET_NAME}": os.environ["AKV_TLS_KEY_SECRET_NAME"],
+          }
+
+          for path in Path("rendered-k8s").rglob("*.yaml"):
+              content = path.read_text()
+              for old, new in replacements.items():
+                  content = content.replace(old, new)
+              path.write_text(content)
+          PY
+
       - name: Deploy manifests and update image
         run: |
-          kubectl apply -k k8s
+          kubectl apply -k rendered-k8s
           kubectl -n "${{ vars.AKS_NAMESPACE }}" set image deployment/${{ vars.AKS_DEPLOYMENT_NAME }} \
             ${{ vars.AKS_CONTAINER_NAME }}=${{ vars.REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
           kubectl -n "${{ vars.AKS_NAMESPACE }}" rollout status deployment/${{ vars.AKS_DEPLOYMENT_NAME }}

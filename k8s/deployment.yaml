@@ -51,7 +51,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: fibonacci-api
-          image: REPLACE_WITH_ACR_LOGIN_SERVER/fibonacci-api:latest
+          image: ${REGISTRY_HOST}/${IMAGE_NAME}:latest
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
