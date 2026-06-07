@@ -127,6 +127,7 @@ A task is complete only if all are true:
 
 - Keep `README.md` aligned with actual runtime paths and endpoints.
 - If docs configuration changes (Swagger/ReDoc/OpenAPI paths), update the endpoint list in `README.md`.
+- Always retain least-privilege guidance in `README.md` (non-root runtime, restricted permissions).
 
 ## Out of Scope for This Repo
 

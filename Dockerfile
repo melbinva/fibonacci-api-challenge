@@ -1,3 +1,15 @@
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+COPY pyproject.toml uv.lock ./
+RUN pip install --no-cache-dir --disable-pip-version-check uv==0.11.19 \
+	&& uv sync --frozen --no-dev
+
+
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -8,10 +20,10 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup --uid 10001 appuser
 
-COPY pyproject.toml uv.lock ./
-RUN pip install --no-cache-dir uv && uv sync --frozen --no-dev
+COPY --from=builder /app/.venv ./.venv
 
 COPY --chown=appuser:appgroup src ./src
+RUN chmod -R go-w /app
 
 USER appuser:appgroup
 

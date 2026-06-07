@@ -109,16 +109,12 @@ uv run pytest -q
 
 ## Docker
 
-Build image:
+Security requirement: always keep least-privilege runtime guidance in this document.
+
+Build image (least-privilege by default in this Dockerfile):
 
 ```bash
 docker build -t fibonacci-api .
-```
-
-Least-privilege build (same Dockerfile, non-root runtime user):
-
-```bash
-docker build -t fibonacci-api:least-priv .
 ```
 
 Run container:
@@ -199,6 +195,7 @@ Notes:
 - Package as a Docker image and deploy to a container runtime.
 - Keep image minimal using python:slim.
 - Run as a non-root user in the container (least privilege).
+- Preserve this least-privilege requirement in future README updates.
 
 ### CI/CD
 
