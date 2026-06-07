@@ -139,3 +139,29 @@ Avoid introducing unrelated framework guidance unless required by a new feature:
 - Multi-domain microservice conventions
 
 Add those only when the codebase actually includes them.
+
+## Kubernetes Best Practices
+
+- Treat `k8s/kustomization.yaml` as the deployment entry point. Prefer `kubectl apply -k k8s` over applying individual files.
+- Keep workloads least-privilege by default:
+  - `runAsNonRoot: true`
+  - `allowPrivilegeEscalation: false`
+  - `readOnlyRootFilesystem: true`
+  - drop Linux capabilities
+- Preserve health probes and rollout safety settings unless there is a clear reason to change them:
+  - startup, readiness, and liveness probes
+  - rolling update strategy
+  - `minReadySeconds`
+  - `progressDeadlineSeconds`
+- Keep availability protections in place:
+  - HPA
+  - PDB
+  - anti-affinity / topology spread constraints
+- Keep ingress TLS enabled. The ingress TLS secret is expected to be sourced from Azure Key Vault via `SecretProviderClass`.
+- For AKS, prefer workload identity / managed identity over static credentials.
+- Keep network access explicit. Do not weaken `NetworkPolicy` without documenting why.
+- If Kubernetes manifests change behavior, update `README.md` deployment notes and prerequisites.
+- Validate Kubernetes changes with at least one of:
+  - `kubectl apply -k k8s --dry-run=client`
+  - `kubectl kustomize k8s`
+  - CI what-if manifest validation
