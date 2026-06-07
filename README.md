@@ -17,6 +17,8 @@ This project implements a REST API that returns the nth Fibonacci number.
 
 ## Tech Stack
 
+[Back to Table of Contents](#table-of-contents)
+
 - Python 3.12
 - FastAPI
 - Pytest
@@ -24,6 +26,8 @@ This project implements a REST API that returns the nth Fibonacci number.
 - GitHub Actions
 
 ## Endpoints
+
+[Back to Table of Contents](#table-of-contents)
 
 Base URL (local): `http://127.0.0.1:8000`
 
@@ -80,6 +84,8 @@ curl -i "http://127.0.0.1:8000/fibonacci?n=abc"
 
 ## Local Run
 
+[Back to Table of Contents](#table-of-contents)
+
 1. Install uv (one time):
 
 ```bash
@@ -116,11 +122,15 @@ uv run uvicorn src.app.main:app --reload
 
 ## Run Tests
 
+[Back to Table of Contents](#table-of-contents)
+
 ```bash
 uv run pytest -q
 ```
 
 ## Docker
+
+[Back to Table of Contents](#table-of-contents)
 
 Security requirement: always keep least-privilege runtime guidance in this document.
 
@@ -144,6 +154,8 @@ docker run --rm --entrypoint id fibonacci-api
 
 ## Kubernetes (Production Manifests)
 
+[Back to Table of Contents](#table-of-contents)
+
 Production-ready manifests are available in [k8s](k8s):
 
 - [k8s/deployment.yaml](k8s/deployment.yaml)
@@ -158,8 +170,7 @@ Production-ready manifests are available in [k8s](k8s):
 
 Before applying:
 
-1. Replace image in [k8s/deployment.yaml](k8s/deployment.yaml) with your ACR image, for example:
-  Not required for pipeline-driven deployments. The image reference is rendered from GitHub variables (`REGISTRY_HOST` and `IMAGE_NAME`).
+1. For pipeline-driven deployments, no manual image edit is required. The image reference in [k8s/deployment.yaml](k8s/deployment.yaml) is rendered from GitHub variables (`REGISTRY_HOST` and `IMAGE_NAME`).
 2. Set deployment template values through GitHub Actions variables using [.github/variables.env.schema](.github/variables.env.schema), including:
   - `INGRESS_HOST`
   - `USER_ASSIGNED_MANAGED_IDENTITY_CLIENT_ID`
@@ -215,6 +226,8 @@ Notes:
 
 ## Production Deployment Considerations
 
+[Back to Table of Contents](#table-of-contents)
+
 Scope boundary:
 
 - This repository is intentionally focused on application workload delivery (build, test, containerize, deploy application manifests).
@@ -249,6 +262,7 @@ Base production CD template and variable files are included:
 The template is Azure-only and uses:
 
 - GitHub OIDC federated identity login to Azure (no client secret by default)
+- GitHub OIDC federated identity login to Azure for both CI image push and CD deployment
 - AKS managed identity attachment to ACR for image pull (`az aks update --attach-acr`)
 - GitHub Environment approval gate before deployment (`DEPLOYMENT_ENVIRONMENT`)
 - Post-deployment validation (rollout + optional HTTP health check via `AKS_VALIDATION_URL`)
@@ -256,14 +270,17 @@ The template is Azure-only and uses:
 
 Passwordless authentication (recommended):
 
-- The CD template uses GitHub OIDC federation with Microsoft Entra ID for passwordless authentication.
-- The CI workflow still uses ACR username/password secrets for image push.
-- Prefer migrating CI image push to federated Azure authentication as a future improvement if your registry and runner setup support it.
+- Both the CI workflow and CD template use GitHub OIDC federation with Microsoft Entra ID for passwordless authentication.
+- CI logs into Azure with `azure/login` and performs `az acr login` before pushing the image.
 - Do not store long-lived Azure passwords or client secrets in repository secrets when OIDC is available.
 - Configure Azure login with:
   - `AZURE_CLIENT_ID`
   - `AZURE_TENANT_ID`
   - `AZURE_SUBSCRIPTION_ID`
+- Configure ACR/image variables with:
+  - `ACR_NAME`
+  - `REGISTRY_HOST`
+  - `IMAGE_NAME`
 - This enables short-lived, workload-issued tokens and reduces secret exposure risk.
 
 Self-hosted runner prerequisites:
@@ -276,13 +293,13 @@ Self-hosted runner prerequisites:
 
 Runner note:
 
-- `uv` is required for the CI workflow.
+- `uv` is installed by the CI workflow via `astral-sh/setup-uv` and does not need to be preinstalled on the runner.
 - The AKS CD template specifically requires `docker`, `az`, and `kubectl` on the self-hosted runner.
 
 Template usage:
 
 ```bash
-# 1) create repo variables and secrets from example files
+# 1) create repo variables and optional secrets from example files
 # .github/variables.env.schema
 # .github/secrets.env.schema
 
@@ -305,12 +322,16 @@ Template usage:
 
 ## Algorithm Choice
 
+[Back to Table of Contents](#table-of-contents)
+
 - Implemented iterative Fibonacci, not recursive.
 - Complexity:
   - Time: O(n)
   - Space: O(1)
 
 ## AI Usage
+
+[Back to Table of Contents](#table-of-contents)
 
 Per interview guidance, AI assistance was used and reviewed critically.
 
@@ -358,12 +379,14 @@ Per interview guidance, AI assistance was used and reviewed critically.
 
 - Initial AI-generated Kubernetes manifests and Docker configuration did not fully satisfy the project’s security requirements. I later revised them to follow least-privilege principles, non-root execution, and container hardening best practices.
 - The original Dockerfile was not implemented as a multi-stage build, so I refactored it to reduce the runtime footprint and improve security posture.
-- I added observability support to improve metrics collection and monitoring readiness.
+- I added observability-related resources to improve monitoring readiness and operational visibility.
 - Earlier generated tests expected FastAPI default error shape (`detail`) after custom handlers were introduced.
 - A stale `/redoc` link remained after disabling ReDoc and required manual correction.
 - Initial drafts did not fully align with final structure goals (helper package + app factory), so additional manual refactoring was required.
 
 ## Evaluation Criteria Coverage
+
+[Back to Table of Contents](#table-of-contents)
 
 - Functionality of the API:
   - Implements `GET /fibonacci?n=<integer>` with deterministic Fibonacci output.

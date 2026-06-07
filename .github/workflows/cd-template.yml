@@ -20,7 +20,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Uses GitHub OIDC federation with Microsoft Entra ID (no client secret).
+      # Prerequisite: the GitHub repository/environment must be configured for
+      # OIDC federation with Microsoft Entra ID, and AZURE_CLIENT_ID must point
+      # to that federated app/service principal.
       - name: Azure login (OIDC federated identity)
         uses: azure/login@v2
         with:
@@ -28,6 +30,8 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      # Prerequisite: the federated identity used above needs AcrPush on the
+      # target ACR so az acr login and docker push can succeed without a password.
       - name: Log in to Azure Container Registry
         run: az acr login --name "${{ vars.ACR_NAME }}"
 
@@ -58,7 +62,8 @@ jobs:
       - linux
 
     steps:
-      # Uses GitHub OIDC federation with Microsoft Entra ID (no client secret).
+      # Prerequisite: the same GitHub OIDC federated identity must also have
+      # permission to read/update the AKS cluster resources used below.
       - name: Azure login (OIDC federated identity)
         uses: azure/login@v2
         with:
@@ -66,7 +71,9 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      # AKS uses managed identity for ACR pull via --attach-acr on the cluster.
+      # AKS pulls images with its managed identity after --attach-acr succeeds.
+      # This step is separate from CI/CD push permissions: AcrPull is for the
+      # cluster identity, while AcrPush is for the GitHub OIDC identity above.
       - name: Ensure AKS is attached to ACR
         run: az aks update --resource-group "${{ vars.AKS_RESOURCE_GROUP }}" --name "${{ vars.AKS_CLUSTER_NAME }}" --attach-acr "${{ vars.ACR_NAME }}"
 
