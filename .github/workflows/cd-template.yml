@@ -11,46 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  build-and-push:
-    runs-on:
-      - self-hosted
-      - linux
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # Prerequisite: the GitHub repository/environment must be configured for
-      # OIDC federation with Microsoft Entra ID, and AZURE_CLIENT_ID must point
-      # to that federated app/service principal.
-      - name: Azure login (OIDC federated identity)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-      # Prerequisite: the federated identity used above needs AcrPush on both
-      # non-production and production ACR instances.
-      - name: Log in to non-production ACR
-        run: az acr login --name "${{ vars.NONPROD_ACR_NAME }}"
-
-      - name: Log in to production ACR
-        run: az acr login --name "${{ vars.PROD_ACR_NAME }}"
-
-      - name: Build and push image to non-production and production registries
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ vars.NONPROD_REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:latest
-            ${{ vars.NONPROD_REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
-            ${{ vars.PROD_REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:latest
-            ${{ vars.PROD_REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
-
   deploy-dev:
-    needs: build-and-push
     runs-on:
       - self-hosted
       - linux
@@ -65,6 +26,9 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # CI is the source of truth for image push into non-production ACR.
+      # CD expects NONPROD_REGISTRY_HOST/IMAGE_NAME:${{ github.sha }} to exist.
 
       # Dev and test pull from non-production ACR via AKS managed identity.
       - name: Ensure dev AKS is attached to non-production ACR
@@ -231,6 +195,15 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # Promote the exact CI-built image from non-production ACR to production ACR.
+      - name: Promote image from non-production ACR to production ACR
+        run: |
+          az acr import \
+            --name "${{ vars.PROD_ACR_NAME }}" \
+            --source "${{ vars.NONPROD_REGISTRY_HOST }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}" \
+            --image "${{ vars.IMAGE_NAME }}:${{ github.sha }}" \
+            --force
 
       - name: Ensure prod AKS is attached to production ACR
         run: az aks update --resource-group "${{ vars.PROD_AKS_RESOURCE_GROUP }}" --name "${{ vars.PROD_AKS_CLUSTER_NAME }}" --attach-acr "${{ vars.PROD_ACR_NAME }}"

@@ -272,6 +272,7 @@ The template is Azure-only and uses:
 - GitHub OIDC federated identity login to Azure for both CI image push and CD deployment (no client secret by default)
 - stage-based deployment flow: `dev` -> `test` -> production approval -> `prod`
 - non-production ACR for `dev` and `test`, production ACR for `prod`
+- CI as the image publisher to non-production ACR; CD promotes the same `${{ github.sha }}` image to production ACR before `prod` deployment
 - AKS managed identity attachment to ACR for image pull (`az aks update --attach-acr`)
 - GitHub Environment-based stage controls (`DEV_DEPLOYMENT_ENVIRONMENT`, `TEST_DEPLOYMENT_ENVIRONMENT`, `PROD_DEPLOYMENT_ENVIRONMENT`)
 - Post-deployment validation per stage (cluster checks + optional HTTP health checks via `DEV_AKS_VALIDATION_URL`, `TEST_AKS_VALIDATION_URL`, `PROD_AKS_VALIDATION_URL`)
@@ -302,8 +303,7 @@ Passwordless authentication (recommended):
 Image push behavior on `main`:
 
 - CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) pushes to non-production ACR on `main`.
-- CD template ([.github/workflows/cd-template.yml](.github/workflows/cd-template.yml)) also builds and pushes to both non-production and production ACR.
-- If you want a single push source of truth, disable image push in one workflow.
+- CD template ([.github/workflows/cd-template.yml](.github/workflows/cd-template.yml)) reuses that immutable `${{ github.sha }}` image for `dev` and `test`, then promotes it to production ACR for `prod`.
 
 Self-hosted runner prerequisites:
 
